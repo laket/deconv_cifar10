@@ -23,7 +23,7 @@ tf.app.flags.DEFINE_string('dir_log', './vis_log',
                                                      """and checkpoint.""")
 tf.app.flags.DEFINE_string('dir_parameter', './parameter',
                                                      """Directory where to write parameters""")
-
+np.set_printoptions(precision=2)
 
 def restore_model(sess):
     saver = tf.train.Saver(tf.trainable_variables())    
@@ -42,6 +42,7 @@ def restore_model(sess):
 def collect_features(network, dummy_input, idx_layer, input_image):
     # Start running operations on the Graph.
     start_layer_output = network.conv_outputs[idx_layer]
+    start_layer = network.conv_layers[idx_layer]    
     N, H, W, C = start_layer_output.get_shape()
     
     dummy_feat = tf.placeholder(tf.float32, shape=(N,H,W,C))
@@ -62,8 +63,15 @@ def collect_features(network, dummy_input, idx_layer, input_image):
     
     for idx_feat in range(C):
         input_feat = np.zeros(cur_feat.shape, dtype=np.float32)
-        input_feat[0,:,:,idx_feat] = cur_feat[0,:,:,idx_feat]
-        
+
+        #input_feat[0,:,:,idx_feat] = cur_feat[0,:,:,idx_feat]
+
+        pos = np.argmax(cur_feat[0,:,:,idx_feat])
+
+        h, w = pos/int(W), pos%int(W)
+        input_feat[0,h,w,idx_feat] = cur_feat[0,h,w,idx_feat]
+
+
         cur_reconst = sess.run(reconstructed,
                                feed_dict={
                                    dummy_feat:input_feat, dummy_input:input_image
@@ -86,13 +94,15 @@ def evaluate():
         summary_op = tf.merge_all_summaries() 
         summary_writer = tf.train.SummaryWriter(FLAGS.dir_log, g)
 
-        original_image, input_image = mnist_input.get_image(0)
-        idx_layer = 2
+        original_image, input_image = mnist_input.get_image(4)
+        idx_layer = 3
         feat_images = collect_features(network, dummy_input, idx_layer, input_image)
 
+        max_value = np.max(feat_images) + 0.001
+        
         for idx_feat, feat_image in enumerate(feat_images):
             path_out = os.path.join("out", "{}.png".format(idx_feat))
-            normalized = (feat_image / (np.max(feat_image) + 0.001) * 255).astype(int)
+            normalized = (feat_image / max_value * 255).astype(int)
             cv2.imwrite(path_out, normalized)
         
                 
