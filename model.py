@@ -134,7 +134,6 @@ class Network(object):
         output_ch *= 2
 
         # FC layer
-        """
         with tf.variable_scope("FC"):
             flat = tf.contrib.layers.flatten(feat)
             N, D = flat.get_shape()
@@ -149,16 +148,6 @@ class Network(object):
             b2 = _var("b2", [num_classes], initializer=tf.constant_initializer())
 
             logits = tf.matmul(fc1, W2) + b2
-        """
-        # Global Average Pooling
-        with tf.variable_scope("GAP"):
-            N, H, W, C = feat.get_shape()
-            w = _var("W", [H,W,C,num_classes])
-            b = _var("b", [num_classes],initializer=tf.constant_initializer())
-                    
-            feat = tf.nn.conv2d(feat, w, strides=[1,1,1,1],padding="VALID")
-            logits = feat + b
-            logits = tf.contrib.layers.flatten(logits)
     
         return logits
 
